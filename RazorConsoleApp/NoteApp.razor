@@ -1,0 +1,347 @@
+﻿@using RazorConsole.Components
+@inject NoteService NoteService
+
+<Border BorderColor="@Spectre.Console.Color.Blue" Padding="@(new Spectre.Console.Padding(2, 1))">
+    <Rows>
+        <Markup Content="[+] Note App - CRUD Console Application" Foreground="@Spectre.Console.Color.Blue" />
+        <Newline />
+        
+        @if (_currentView == ViewMode.List)
+        {
+            <Markup Content="* Your Notes" Foreground="@Spectre.Console.Color.Yellow" />
+            <Newline />
+            
+            @if (_notes.Count == 0)
+            {
+                <Markup Content="No notes yet. Create your first note!" Foreground="@Spectre.Console.Color.Grey" />
+            }
+            else
+            {
+                @foreach (var note in _notes)
+                {
+                    <Columns>
+                        <Markup Content="@($"#{note.Id}")" Foreground="@Spectre.Console.Color.Cyan1" />
+                        <Markup Content="@note.Title" Foreground="@Spectre.Console.Color.Green" />
+                        <Markup Content="@($"- {GetPreview(note.Content)}")" />
+                        <Markup Content="@note.UpdatedAt.ToString("MM/dd HH:mm")" Foreground="@Spectre.Console.Color.Grey" />
+                    </Columns>
+                }
+                <Newline />
+                <Markup Content="@($"Total: {_notes.Count} note(s)")" Foreground="@Spectre.Console.Color.Grey" />
+            }
+            
+            <Newline />
+            @if (!string.IsNullOrEmpty(_message))
+            {
+                <Markup Content="@_message" />
+            }
+            <Newline />
+            
+            <Columns>
+                <TextButton Content="[+] Create" OnClick="ShowCreateView" BackgroundColor="@Spectre.Console.Color.Green" FocusedColor="@Spectre.Console.Color.Lime" />
+                <TextButton Content="[?] View" OnClick="ShowViewPrompt" BackgroundColor="@Spectre.Console.Color.Blue" FocusedColor="@Spectre.Console.Color.Cyan1" />
+                <TextButton Content="[*] Edit" OnClick="ShowEditPrompt" BackgroundColor="@Spectre.Console.Color.Yellow" FocusedColor="@Spectre.Console.Color.Orange1" />
+                <TextButton Content="[-] Delete" OnClick="ShowDeletePrompt" BackgroundColor="@Spectre.Console.Color.Red" FocusedColor="@Spectre.Console.Color.Red1" />
+                <TextButton Content="@("[@] Refresh")" OnClick="RefreshNotes" BackgroundColor="@Spectre.Console.Color.Grey" FocusedColor="@Spectre.Console.Color.White" />
+                <TextButton Content="[X] Exit" OnClick="ExitApp" BackgroundColor="@Spectre.Console.Color.Maroon" FocusedColor="@Spectre.Console.Color.Red3" />
+            </Columns>
+        }
+        else if (_currentView == ViewMode.Create)
+        {
+            <Markup Content="[+] Create New Note" Foreground="@Spectre.Console.Color.Green" />
+            <Newline />
+            
+            <Markup Content="Title:" />
+            <TextInput @bind-Value="_newTitle" Placeholder="Enter note title..." />
+            <Newline />
+            
+            <Markup Content="Content:" />
+            <TextInput @bind-Value="_newContent" Placeholder="Enter note content..." />
+            <Newline />
+            
+            <Columns>
+                <TextButton Content="[>] Save" OnClick="CreateNote" BackgroundColor="@Spectre.Console.Color.Green" FocusedColor="@Spectre.Console.Color.Lime" />
+                <TextButton Content="[X] Cancel" OnClick="CancelToList" BackgroundColor="@Spectre.Console.Color.Red" FocusedColor="@Spectre.Console.Color.Red1" />
+            </Columns>
+            
+            <Newline />
+            @if (!string.IsNullOrEmpty(_message))
+            {
+                <Markup Content="@_message" />
+            }
+        }
+        else if (_currentView == ViewMode.Edit)
+        {
+            <Markup Content="[*] Edit Note" Foreground="@Spectre.Console.Color.Yellow" />
+            <Newline />
+            
+            <Markup Content="Title:" />
+            <TextInput @bind-Value="_editTitle" Placeholder="Enter note title..." />
+            <Newline />
+            
+            <Markup Content="Content:" />
+            <TextInput @bind-Value="_editContent" Placeholder="Enter note content..." />
+            <Newline />
+            
+            <Columns>
+                <TextButton Content="[>] Update" OnClick="UpdateNote" BackgroundColor="@Spectre.Console.Color.Yellow" FocusedColor="@Spectre.Console.Color.Orange1" />
+                <TextButton Content="[X] Cancel" OnClick="CancelToList" BackgroundColor="@Spectre.Console.Color.Red" FocusedColor="@Spectre.Console.Color.Red1" />
+            </Columns>
+            
+            <Newline />
+            @if (!string.IsNullOrEmpty(_message))
+            {
+                <Markup Content="@_message" />
+            }
+        }
+        else if (_currentView == ViewMode.View)
+        {
+            @if (_selectedNote != null)
+            {
+                <Markup Content="[?] View Note" Foreground="@Spectre.Console.Color.Cyan2" />
+                <Newline />
+                
+                <Border BorderColor="@Spectre.Console.Color.Cyan1" Padding="@(new Spectre.Console.Padding(1))">
+                    <Rows>
+                        <Markup Content="@_selectedNote.Title" Foreground="@Spectre.Console.Color.Green" />
+                        <Newline />
+                        <Markup Content="@_selectedNote.Content" />
+                        <Newline />
+                        <Markup Content="@($"Created: {_selectedNote.CreatedAt:yyyy-MM-dd HH:mm:ss}")" Foreground="@Spectre.Console.Color.Grey" />
+                        <Markup Content="@($"Updated: {_selectedNote.UpdatedAt:yyyy-MM-dd HH:mm:ss}")" Foreground="@Spectre.Console.Color.Grey" />
+                    </Rows>
+                </Border>
+                
+                <Newline />
+                <TextButton Content="[<] Back to List" OnClick="CancelToList" BackgroundColor="@Spectre.Console.Color.Blue" FocusedColor="@Spectre.Console.Color.Cyan1" />
+            }
+        }
+        else if (_currentView == ViewMode.InputId)
+        {
+            <Markup Content="@_inputPrompt" Foreground="@Spectre.Console.Color.Yellow" />
+            <Newline />
+            
+            <Markup Content="Enter Note ID:" />
+            <TextInput @bind-Value="_inputId" Placeholder="Enter ID..." />
+            <Newline />
+            
+            <Columns>
+                <TextButton Content="[>] OK" OnClick="ProcessIdInput" BackgroundColor="@Spectre.Console.Color.Green" FocusedColor="@Spectre.Console.Color.Lime" />
+                <TextButton Content="[X] Cancel" OnClick="CancelToList" BackgroundColor="@Spectre.Console.Color.Red" FocusedColor="@Spectre.Console.Color.Red1" />
+            </Columns>
+            
+            <Newline />
+            @if (!string.IsNullOrEmpty(_message))
+            {
+                <Markup Content="@_message" />
+            }
+        }
+    </Rows>
+</Border>
+
+@code {
+    private enum ViewMode { List, Create, Edit, View, InputId }
+    private enum InputAction { None, View, Edit, Delete }
+    
+    private ViewMode _currentView = ViewMode.List;
+    private InputAction _pendingAction = InputAction.None;
+    private List<Note> _notes = new();
+    
+    private string _newTitle = string.Empty;
+    private string _newContent = string.Empty;
+    private string _editTitle = string.Empty;
+    private string _editContent = string.Empty;
+    private string _inputId = string.Empty;
+    private string _inputPrompt = string.Empty;
+    private int _selectedNoteId;
+    private Note? _selectedNote;
+    private string _message = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        RefreshNotes();
+    }
+
+    private void RefreshNotes()
+    {
+        _notes = NoteService.GetAllNotes();
+        _message = string.Empty;
+    }
+
+    private void CancelToList()
+    {
+        _currentView = ViewMode.List;
+        _message = string.Empty;
+        _inputId = string.Empty;
+        _newTitle = string.Empty;
+        _newContent = string.Empty;
+        _editTitle = string.Empty;
+        _editContent = string.Empty;
+        RefreshNotes();
+    }
+
+    private void ShowCreateView()
+    {
+        _currentView = ViewMode.Create;
+        _newTitle = string.Empty;
+        _newContent = string.Empty;
+        _message = string.Empty;
+    }
+
+    private void ShowViewPrompt()
+    {
+        if (_notes.Count == 0)
+        {
+            _message = "No notes to view.";
+            return;
+        }
+        _pendingAction = InputAction.View;
+        _inputPrompt = "View Note";
+        _currentView = ViewMode.InputId;
+        _inputId = string.Empty;
+        _message = string.Empty;
+    }
+
+    private void ShowEditPrompt()
+    {
+        if (_notes.Count == 0)
+        {
+            _message = "No notes to edit.";
+            return;
+        }
+        _pendingAction = InputAction.Edit;
+        _inputPrompt = "Edit Note";
+        _currentView = ViewMode.InputId;
+        _inputId = string.Empty;
+        _message = string.Empty;
+    }
+
+    private void ShowDeletePrompt()
+    {
+        if (_notes.Count == 0)
+        {
+            _message = "No notes to delete.";
+            return;
+        }
+        _pendingAction = InputAction.Delete;
+        _inputPrompt = "Delete Note";
+        _currentView = ViewMode.InputId;
+        _inputId = string.Empty;
+        _message = string.Empty;
+    }
+
+    private void ExitApp()
+    {
+        Environment.Exit(0);
+    }
+
+    private void ProcessIdInput()
+    {
+        if (!int.TryParse(_inputId, out int id))
+        {
+            _message = "Invalid ID. Please enter a number.";
+            return;
+        }
+
+        var note = NoteService.GetNoteById(id);
+        if (note == null)
+        {
+            _message = $"Note with ID {id} not found.";
+            return;
+        }
+
+        _selectedNoteId = id;
+        _selectedNote = note;
+
+        switch (_pendingAction)
+        {
+            case InputAction.View:
+                _currentView = ViewMode.View;
+                _message = string.Empty;
+                break;
+            case InputAction.Edit:
+                _editTitle = note.Title;
+                _editContent = note.Content;
+                _currentView = ViewMode.Edit;
+                _message = string.Empty;
+                break;
+            case InputAction.Delete:
+                DeleteNote();
+                break;
+        }
+
+        _pendingAction = InputAction.None;
+    }
+
+    private void CreateNote()
+    {
+        if (string.IsNullOrWhiteSpace(_newTitle))
+        {
+            _message = "Title is required.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_newContent))
+        {
+            _message = "Content is required.";
+            return;
+        }
+
+        NoteService.CreateNote(_newTitle.Trim(), _newContent.Trim());
+        _message = "Note created successfully!";
+        
+        _newTitle = string.Empty;
+        _newContent = string.Empty;
+        
+        _currentView = ViewMode.List;
+        RefreshNotes();
+    }
+
+    private void UpdateNote()
+    {
+        if (string.IsNullOrWhiteSpace(_editTitle))
+        {
+            _message = "Title is required.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_editContent))
+        {
+            _message = "Content is required.";
+            return;
+        }
+
+        if (NoteService.UpdateNote(_selectedNoteId, _editTitle.Trim(), _editContent.Trim()))
+        {
+            _message = "Note updated successfully!";
+            _editTitle = string.Empty;
+            _editContent = string.Empty;
+            _currentView = ViewMode.List;
+            RefreshNotes();
+        }
+        else
+        {
+            _message = "Failed to update note.";
+        }
+    }
+
+    private void DeleteNote()
+    {
+        if (NoteService.DeleteNote(_selectedNoteId))
+        {
+            _message = "Note deleted successfully!";
+            _currentView = ViewMode.List;
+            RefreshNotes();
+        }
+        else
+        {
+            _message = "Failed to delete note.";
+        }
+    }
+
+    private string GetPreview(string content, int maxLength = 40)
+    {
+        if (string.IsNullOrEmpty(content)) return "...";
+        return content.Length <= maxLength ? content : content.Substring(0, maxLength) + "...";
+    }
+}
