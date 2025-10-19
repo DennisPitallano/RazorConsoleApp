@@ -55,6 +55,9 @@ The app uses Razor components with Blazor's component model:
 
 But instead of HTML elements, it uses Spectre.Console components like `<Border>`, `<Markup>`, and `<TextButton>` that render to the terminal.
 
+<img width="1632" height="749" alt="image" src="https://github.com/user-attachments/assets/57a08dcc-01de-4c5c-85a8-ff0f88ffa96e" />
+
+
 ## Credits
 
 - **Spectre.Console** - Making terminal UIs beautiful since... well, recently!
